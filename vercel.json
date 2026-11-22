@@ -1,4 +1,7 @@
 {
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "public",
   "functions": {
     "api/repo.mjs": { "maxDuration": 30 },
     "api/analyze.mjs": { "maxDuration": 60 }
