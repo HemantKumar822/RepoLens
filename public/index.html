@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f5ef">
+    <meta name="description" content="Map public GitHub repositories with visual folder charts, language composition, architecture signals, and useful first files.">
+    <title>RepoLens — a field guide to any codebase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="RepoLens home">
+          <svg class="brand-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 7.5A3.5 3.5 0 0 1 7.5 4h13A3.5 3.5 0 0 1 24 7.5V18a3 3 0 0 1-3 3H10l-5.5 5V7.5Z"/><circle cx="11" cy="12" r="1.4"/><circle cx="17" cy="12" r="1.4"/><path d="M10 16h8"/><path class="brand-handle" d="m22 21 5 5"/></svg>
+          <span>repo<span class="brand-light">lens</span></span>
+        </a>
+        <nav class="topnav" aria-label="Main navigation">
+          <a href="#how-it-works">How it works</a>
+          <a class="nav-github" href="https://github.com" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="hero-grid" aria-hidden="true"></div>
+          <div class="hero-copy">
+            <p class="eyebrow"><span class="live-dot"></span> OPEN SOURCE / IN FOCUS</p>
+            <h1 id="hero-title">A field guide<br>to <span>any codebase.</span></h1>
+            <p class="hero-description">Get the lay of the land before you lose an afternoon in the files. Start with any public GitHub repo.</p>
+            <form id="repo-form" class="repo-form">
+              <label class="sr-only" for="repo-url">Public GitHub repository URL</label>
+              <svg class="input-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 17c-2.2 0-4-1.8-4-4s1.8-4 4-4h3m5-2h-3m-5 6h8m-5-2 2 2-2 2"/><path d="M14 5h3a4 4 0 0 1 0 8h-2"/></svg>
+              <input id="repo-url" name="repo-url" type="url" placeholder="github.com / owner / repo" autocomplete="url" required>
+              <button id="analyze-button" type="submit"><span>Map this repo</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 15 15 4M5 4h10v10"/></svg></button>
+            </form>
+            <div class="search-meta"><span id="form-message" role="status" aria-live="polite">Public repositories · no files are changed</span><span class="privacy-note">Nothing is saved</span></div>
+            <div class="examples" aria-label="Try an example repository">
+              <span class="example-label">QUICK MAP</span>
+              <button type="button" data-repo="https://github.com/obra/superpowers">obra / superpowers</button>
+              <button type="button" data-repo="https://github.com/fastapi/fastapi">fastapi / fastapi</button>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-label="Illustrated repository map showing connected files and folders">
+            <div class="visual-topline"><span>REPOSITORY / 001</span><span><i></i> TREE VIEW</span></div>
+            <svg class="atlas" viewBox="0 0 580 400" role="img" aria-labelledby="atlas-title atlas-desc">
+              <title id="atlas-title">A map through a codebase</title>
+              <desc id="atlas-desc">A root repository branches into source code, docs, tests, and configuration.</desc>
+              <defs>
+                <pattern id="atlas-grid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="#789d9a" stroke-opacity=".18" stroke-width="1"/></pattern>
+                <linearGradient id="atlas-glow" x1="0" x2="1"><stop stop-color="#4a9ab1" stop-opacity=".2"/><stop offset=".62" stop-color="#e6a14f" stop-opacity=".09"/><stop offset="1" stop-color="#df7657" stop-opacity="0"/></linearGradient>
+              </defs>
+              <rect width="580" height="400" fill="url(#atlas-grid)"/>
+              <circle cx="176" cy="202" r="115" fill="url(#atlas-glow)"/>
+              <path class="atlas-route" d="M214 202h62c28 0 26-112 58-112h50M276 202c28 0 26-50 58-50h50M276 202h108M276 202c28 0 26 50 58 50h50M276 202c28 0 26 112 58 112h50"/>
+              <circle class="route-pin" cx="276" cy="202" r="4"/>
+              <g class="atlas-node atlas-origin"><rect x="66" y="168" width="148" height="68" rx="9"/><path d="M83 191h18m-18 10h28"/><text x="83" y="222">your repo</text><circle cx="197" cy="185" r="4"/></g>
+              <g class="atlas-node node-src"><rect x="384" y="66" width="154" height="52" rx="8"/><path d="M401 86h15m-15 8h9"/><text x="424" y="95">src/</text><circle cx="519" cy="83" r="3"/></g>
+              <g class="atlas-node node-docs"><rect x="384" y="136" width="154" height="52" rx="8"/><path d="M401 156h15m-15 8h9"/><text x="424" y="165">docs/</text></g>
+              <g class="atlas-node node-test"><rect x="384" y="220" width="154" height="52" rx="8"/><path d="M401 240h15m-15 8h9"/><text x="424" y="249">tests/</text><circle cx="523" cy="256" r="3"/></g>
+              <g class="atlas-node node-config"><rect x="384" y="290" width="154" height="52" rx="8"/><path d="M401 310h15m-15 8h9"/><text x="424" y="319">config</text></g>
+              <text class="atlas-label" x="34" y="375">FOLLOW THE SIGNAL, NOT THE NOISE</text>
+              <text class="atlas-coord" x="526" y="375">45° 12' N</text>
+            </svg>
+            <div class="visual-caption"><span>TRACE THE SHAPE</span><span>FILES · STACK · START HERE</span></div>
+            <span class="visual-stamp" aria-hidden="true">RL<br><small>FIELD<br>NOTES</small></span>
+          </div>
+        </section>
+
+        <section id="results" class="results hidden" aria-live="polite" aria-busy="false"></section>
+
+        <section id="how-it-works" class="method-section" aria-labelledby="method-title">
+          <div class="method-heading"><div><p class="eyebrow eyebrow-muted">A BETTER FIRST READ</p><h2 id="method-title">Three clues. One clear starting point.</h2></div><span class="section-index">FIELD METHOD / 03</span></div>
+          <div class="method-grid">
+            <article class="method-card"><span class="method-number">01</span><div><h3>Read the shape</h3><p>See how the folders branch out and where the project keeps its important pieces.</p></div><span class="method-line" aria-hidden="true"></span></article>
+            <article class="method-card"><span class="method-number">02</span><div><h3>Spot the stack</h3><p>Get a visual breakdown of the languages behind the repository.</p></div><span class="method-line" aria-hidden="true"></span></article>
+            <article class="method-card"><span class="method-number">03</span><div><h3>Pick a first file</h3><p>Find a useful place to begin, with an AI-guided tour when configured.</p></div><span class="method-line" aria-hidden="true"></span></article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer"><a class="footer-brand" href="/">REPOLENS</a><span>BUILT FOR THE FIRST READ</span><span>FOLLOW THE FILES. FIND THE IDEA.</span></footer>
+    </div>
+  </body>
+</html>
