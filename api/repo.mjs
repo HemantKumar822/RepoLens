@@ -2,16 +2,22 @@ import { inspectRepository } from '../server.mjs';
 
 export const maxDuration = 30;
 
-export default async function handler(request) {
+function sendJson(response, status, body) {
+  response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  response.end(JSON.stringify(body));
+}
+
+export default async function handler(request, response) {
   if (request.method !== 'GET') {
-    return Response.json({ error: 'Method not allowed.' }, { status: 405 });
+    sendJson(response, 405, { error: 'Method not allowed.' });
+    return;
   }
 
   try {
-    const url = new URL(request.url);
+    const url = new URL(request.url, `https://${request.headers.host || 'localhost'}`);
     const data = await inspectRepository(url.searchParams.get('url') || '');
-    return Response.json(data);
+    sendJson(response, 200, data);
   } catch (error) {
-    return Response.json({ error: error.message || 'Something went wrong. Try again.' }, { status: 400 });
+    sendJson(response, 400, { error: error.message || 'Something went wrong. Try again.' });
   }
 }
