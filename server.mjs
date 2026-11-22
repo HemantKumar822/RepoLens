@@ -123,7 +123,7 @@ function analyzeTree(treeEntries) {
   };
 }
 
-async function inspectRepository(value) {
+export async function inspectRepository(value) {
   const { owner, repo } = parseGitHubUrl(value);
   const base = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
   const metadata = await githubGet(base, 'Repository');
@@ -178,7 +178,7 @@ async function inspectRepository(value) {
   };
 }
 
-async function generateAnalysis(repository) {
+export async function generateAnalysis(repository) {
   if (!process.env.OPENAI_API_KEY) return null;
   const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
   const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
