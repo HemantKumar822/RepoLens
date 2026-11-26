@@ -182,6 +182,9 @@ function renderMarkdown(markdown) {
 }
 
 function renderResults(data, analysis, aiState = 'off', aiError = '') {
+  if (threeCleanup) { threeCleanup(); threeCleanup = null; }
+  currentRepoData = data;
+  selectedRepoFolder = data.structure?.directories?.[0]?.name || '';
   const repo = data.repository;
   const structure = data.structure || { directories: [], manifests: [], roles: {} };
   const tags = (repo.topics || []).slice(0, 5).map((topic) => `<span class="repo-tag">${escapeHtml(topic)}</span>`).join('');
@@ -196,7 +199,7 @@ function renderResults(data, analysis, aiState = 'off', aiError = '') {
       ? '<div class="ai-progress"><span class="ai-pulse" aria-hidden="true"></span><p>Reading the README and file map for a grounded tour…</p></div>'
       : aiState === 'error'
         ? `<p class="ai-placeholder"><strong>Repo map is ready.</strong><br>AI notes could not be created: ${escapeHtml(aiError)}</p>`
-        : '<p class="ai-placeholder"><strong>Structure first. AI tour optional.</strong><br>Set <code>OPENAI_API_KEY</code> in <code>.env</code> to add an AI explanation grounded in this repo.</p>';
+        : '<p class="ai-placeholder"><strong>Your map is ready.</strong><br>Ask a question when you want an AI explanation. Configure <code>GROQ_API_KEY</code> on the server to enable the guide.</p>';
   const aiLabel = analysis ? 'GROUNDED IN THIS TREE' : aiState === 'loading' ? 'READING FILES' : aiState === 'error' ? 'UNAVAILABLE' : 'OPTIONAL';
   const rootFiles = data.topLevel.filter((entry) => entry.type === 'file').slice(0, 6).map((entry) => `<div class="root-file"><span class="file-glyph" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M4 1.8h5l3 3V14H4zM9 2v3h3M6 8h4M6 10.5h4"/></svg></span><span>${escapeHtml(entry.name)}</span></div>`).join('');
   results.innerHTML = `
@@ -212,7 +215,7 @@ function renderResults(data, analysis, aiState = 'off', aiError = '') {
     </div>
     <div class="result-layout">
       <div class="result-column">
-        <section class="info-card map-card"><div class="card-head"><h3>Repository map</h3><span class="card-meta">${escapeHtml(repo.defaultBranch || 'NO BRANCH')} / ${formatNumber(data.fileCount)} FILES</span></div><div class="graph-wrap">${renderRepoGraph(repo, structure)}</div>${rootFiles ? `<div class="root-file-list" aria-label="Top-level files">${rootFiles}</div>` : ''}${data.treeTruncated ? '<p class="tree-warning">GitHub shortened this large file tree; directory counts may be partial.</p>' : ''}</section>
+        <section class="info-card map-card"><div class="card-head"><h3>Explore the map</h3><div class="map-modes" role="group" aria-label="Map view"><button type="button" class="map-mode active" data-map-mode="2d" aria-pressed="true">2D map</button><button type="button" class="map-mode" data-map-mode="3d" aria-pressed="false">3D explore</button></div></div><p class="map-hint">Pick a district to inspect it, or switch to 3D and explore the landscape.</p><div class="map-challenge"><span>FIELD CHALLENGE</span><p id="challenge-text">Find where this project keeps its tests or docs.</p><button id="challenge-start" type="button">Start challenge</button></div><div class="map-scene map-scene-2d"><div class="map-controls"><div class="map-filters" role="group" aria-label="Filter folders"><button type="button" class="map-filter active" data-filter="all">All</button><button type="button" class="map-filter" data-filter="source">Code</button><button type="button" class="map-filter" data-filter="tests">Tests</button><button type="button" class="map-filter" data-filter="docs">Docs</button></div><div class="map-zooms" role="group" aria-label="Map zoom"><button type="button" data-zoom="out" aria-label="Zoom out">−</button><button type="button" data-zoom="in" aria-label="Zoom in">+</button></div></div><div class="graph-wrap">${renderRepoGraph(repo, structure)}</div><div class="district-list" aria-label="Choose a folder">${structure.directories.slice(0, 12).map((folder, index) => `<button type="button" class="district-chip${index===0?' selected':''}" data-folder="${escapeHtml(folder.name)}"><span class="district-dot dot-${index%6}"></span>${escapeHtml(folder.name)}/ <small>${formatNumber(folder.fileCount)}</small></button>`).join('')}</div><div class="district-detail" aria-live="polite"><strong>${escapeHtml(structure.directories[0]?.name || repo.name)}/</strong><span>${formatNumber(structure.directories[0]?.fileCount || data.fileCount)} files in this area</span><a href="${escapeHtml(githubFileUrl(repo, structure.directories[0]?.name || '', 'tree'))}" target="_blank" rel="noreferrer">Open on GitHub ↗</a></div></div><div class="map-scene map-scene-3d hidden"><div id="three-map" class="three-map" role="img" aria-label="Interactive 3D repository landscape"></div><p class="three-caption">Drag to look around · click a district to select · scroll to zoom</p></div>${rootFiles ? `<div class="root-file-list" aria-label="Top-level files">${rootFiles}</div>` : ''}${data.treeTruncated ? '<p class="tree-warning">GitHub shortened this large file tree; directory counts may be partial.</p>' : ''}</section>
         <section class="info-card"><div class="card-head"><h3>From the README</h3><span class="card-meta">PROJECT SIGNAL</span></div>${readmeContent}</section>
       </div>
       <div class="result-column">
@@ -220,7 +223,7 @@ function renderResults(data, analysis, aiState = 'off', aiError = '') {
         <section class="info-card"><div class="card-head"><h3>Directory footprint</h3><span class="card-meta">FILES PER FOLDER</span></div><div class="directory-chart">${renderDirectoryChart(structure.directories, repo)}</div></section>
         <section class="info-card anatomy-card"><div class="card-head"><h3>Project anatomy</h3><span class="card-meta">PATH SIGNALS</span></div><div class="anatomy-body">${renderStructureAnalysis(structure)}</div></section>
         <section class="info-card"><div class="card-head"><h3>Good first files</h3><span class="card-meta">A PLACE TO BEGIN</span></div><ul class="start-list">${recommended || '<li class="readme-copy">No files found in the repository tree.</li>'}</ul></section>
-        <section class="info-card ai-card" aria-live="polite" aria-busy="${aiState === 'loading'}"><div class="card-head"><h3>AI reading notes</h3><span class="card-meta">${aiLabel}</span></div>${aiContent}</section>
+        <section class="info-card ai-card" aria-live="polite" aria-busy="${aiState === 'loading'}"><div class="card-head"><h3>AI field guide</h3><span class="card-meta">${aiLabel}</span></div><div class="tour-tools"><p>Choose a question and explore this repository with a grounded guide.</p><div class="tour-prompts"><button type="button" data-question="Explain this repository in plain language and cite the best files to understand it.">What is this project?</button><button type="button" data-question="What should I know about the selected folder? Explain its likely role using its path and nearby files.">Explain this area</button><button type="button" data-question="Suggest a short reading route through this project using only paths in the file list.">Where should I start?</button></div><form id="tour-form" class="tour-form"><label class="sr-only" for="tour-question">Ask about this repository</label><input id="tour-question" type="text" maxlength="300" placeholder="Ask about this repo…"><button type="submit">Ask <span aria-hidden="true">↗</span></button></form><p class="tour-privacy">Only after you ask, RepoLens sends the README, file paths, and your question to the configured AI provider.</p><div id="tour-response" class="tour-response" aria-live="polite">${aiContent}</div></div></section>
       </div>
     </div>
   `;
@@ -228,7 +231,83 @@ function renderResults(data, analysis, aiState = 'off', aiError = '') {
     input.focus();
     document.querySelector('#repo-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
+  document.querySelectorAll('.district-chip').forEach((chip) => chip.addEventListener('click', () => selectDistrict(chip.dataset.folder)));
+  document.querySelectorAll('[data-map-mode]').forEach((mode) => mode.addEventListener('click', () => toggleMapMode(mode.dataset.mapMode)));
+  document.querySelectorAll('[data-filter]').forEach((filter) => filter.addEventListener('click', () => filterDistricts(filter.dataset.filter)));
+  document.querySelectorAll('[data-zoom]').forEach((zoom) => zoom.addEventListener('click', () => zoomMap(zoom.dataset.zoom)));
+  document.querySelector('#challenge-start').addEventListener('click', startChallenge);
+  document.querySelectorAll('[data-question]').forEach((prompt) => prompt.addEventListener('click', () => askTour(prompt.dataset.question)));
+  document.querySelector('#tour-form').addEventListener('submit', (event) => { event.preventDefault(); const question = document.querySelector('#tour-question').value.trim(); if (question) askTour(question); });
   results.classList.remove('hidden');
+}
+
+let currentRepoData = null;
+let selectedRepoFolder = '';
+let threeCleanup = null;
+
+function selectDistrict(name) {
+  selectedRepoFolder = name;
+  document.querySelectorAll('.district-chip').forEach((chip) => chip.classList.toggle('selected', chip.dataset.folder === name));
+  const folder = currentRepoData?.structure?.directories?.find((entry) => entry.name === name);
+  const detail = document.querySelector('.district-detail');
+  if (detail && folder) detail.innerHTML = `<strong>${escapeHtml(folder.name)}/</strong><span>${formatNumber(folder.fileCount)} files · ${(folder.children || []).slice(0, 3).map((item) => escapeHtml(item.name)).join(' · ') || 'Top-level files'}</span><a href="${escapeHtml(githubFileUrl(currentRepoData.repository, folder.name, 'tree'))}" target="_blank" rel="noreferrer">Open on GitHub ↗</a>`;
+  if(challenge&&!challenge.done&&(currentRepoData.structure.roles[challenge.role]?.folders||[]).includes(name)){challenge.done=true;document.querySelector('#challenge-text').textContent=`Found it: ${name}/ is a strong ${challenge.label} signal. Nice exploring!`;document.querySelector('#challenge-start').textContent='Challenge complete ✓';document.querySelector('.map-challenge').classList.add('challenge-won');}
+}
+
+function filterDistricts(role) {
+  document.querySelectorAll('[data-filter]').forEach((button) => button.classList.toggle('active', button.dataset.filter === role));
+  const folders=currentRepoData?.structure?.roles?.[role]?.folders||[];
+  document.querySelectorAll('.district-chip').forEach((chip)=>{chip.hidden=role!=='all'&&!folders.includes(chip.dataset.folder);});
+}
+
+let mapZoom=1;
+function zoomMap(direction){mapZoom=Math.max(.75,Math.min(1.5,mapZoom+(direction==='in'?.1:-.1)));const graph=document.querySelector('.repo-graph');if(graph)graph.style.transform=`scale(${mapZoom})`;}
+
+let challenge=null;
+function startChallenge(){const options=[{role:'tests',label:'test'},{role:'docs',label:'documentation'},{role:'source',label:'source code'}].filter(item=>(currentRepoData?.structure?.roles?.[item.role]?.folders||[]).length);if(!options.length){document.querySelector('#challenge-text').textContent='No clear code, test, or docs folder signal here—inspect the root files instead.';return;}const next=options[Math.floor(Math.random()*options.length)];challenge={...next,done:false};document.querySelector('#challenge-text').textContent=`Find the folder that most likely contains ${next.label}. Tap a district to inspect it.`;document.querySelector('#challenge-start').textContent='Choose a district';document.querySelector('.map-challenge').classList.remove('challenge-won');}
+
+async function toggleMapMode(mode) {
+  document.querySelectorAll('[data-map-mode]').forEach((button) => { const active = button.dataset.mapMode === mode; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
+  document.querySelector('.map-scene-2d').classList.toggle('hidden', mode !== '2d');
+  document.querySelector('.map-scene-3d').classList.toggle('hidden', mode !== '3d');
+  if (mode === '3d' && !threeCleanup) await buildThreeMap();
+}
+
+async function buildThreeMap() {
+  const host = document.querySelector('#three-map');
+  if (!host || !currentRepoData) return;
+  host.innerHTML = '<div class="three-loading">Preparing your landscape…</div>';
+  try {
+    const THREE = await import('https://esm.sh/three@0.181.2');
+    const { OrbitControls } = await import('https://esm.sh/three@0.181.2/examples/jsm/controls/OrbitControls.js?external=three');
+    if (!host.isConnected) return;
+    host.innerHTML = '';
+    const scene = new THREE.Scene(); scene.background = new THREE.Color('#edf3ef'); scene.fog = new THREE.Fog('#edf3ef', 18, 44);
+    const camera = new THREE.PerspectiveCamera(42, 1, .1, 100); camera.position.set(0, 11, 18);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); renderer.setPixelRatio(Math.min(devicePixelRatio, 1.7)); renderer.setSize(host.clientWidth, host.clientHeight); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; host.append(renderer.domElement);
+    scene.add(new THREE.HemisphereLight('#fffef8', '#a3b8ae', 2)); const sun = new THREE.DirectionalLight('#fff5dc', 2.3); sun.position.set(-5, 12, 7); sun.castShadow = true; scene.add(sun);
+    const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.maxPolarAngle = Math.PI / 2.05; controls.minDistance = 9; controls.maxDistance = 28; controls.target.set(0, 1.2, 0);
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(12, 64), new THREE.MeshStandardMaterial({ color: '#e2eae3', roughness: 1 })); ground.rotation.x = -Math.PI/2; ground.position.y = -.14; ground.receiveShadow = true; scene.add(ground);
+    const colors = ['#4b8da2','#df8060','#c79a3e','#8672ad','#5b9076','#c57492'];
+    const dirs = currentRepoData.structure.directories.slice(0, 12); const max = Math.max(1, ...dirs.map((d) => d.fileCount)); const meshes=[];
+    dirs.forEach((dir,i)=>{const col=i%4,row=Math.floor(i/4),x=(col-1.5)*3.2,z=(row-1)*4.1,w=1.8+Math.min(1,dir.fileCount/max)*.7,h=.65+Math.sqrt(dir.fileCount/max)*3.2;const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,1.8),new THREE.MeshStandardMaterial({color:colors[i%colors.length],roughness:.62}));mesh.position.set(x,h/2,z);mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData={name:dir.name};scene.add(mesh);meshes.push(mesh);const label=makeLabel(THREE,dir.name+'  '+formatNumber(dir.fileCount));label.position.set(x,h+.48,z);scene.add(label);});
+    const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();let frame=0;let paused=false;
+    const resize=()=>{if(!host.clientWidth)return;camera.aspect=host.clientWidth/host.clientHeight;camera.updateProjectionMatrix();renderer.setSize(host.clientWidth,host.clientHeight);};
+    const click=(event)=>{const rect=renderer.domElement.getBoundingClientRect();pointer.x=((event.clientX-rect.left)/rect.width)*2-1;pointer.y=-((event.clientY-rect.top)/rect.height)*2+1;raycaster.setFromCamera(pointer,camera);const hit=raycaster.intersectObjects(meshes)[0];if(hit)selectDistrict(hit.object.userData.name);};
+    const animate=()=>{if(!paused){controls.update();renderer.render(scene,camera);}frame=requestAnimationFrame(animate);}; animate(); renderer.domElement.addEventListener('click',click); const observer=new ResizeObserver(resize);observer.observe(host);const visibility=()=>{paused=document.hidden;};document.addEventListener('visibilitychange',visibility);
+    threeCleanup=()=>{cancelAnimationFrame(frame);observer.disconnect();renderer.domElement.removeEventListener('click',click);document.removeEventListener('visibilitychange',visibility);renderer.dispose();controls.dispose();};
+  } catch (error) { host.innerHTML='<p class="three-error">The 3D view could not load. Use the 2D map, which has the same folder details.</p>'; console.warn('3D map unavailable',error); }
+}
+
+function makeLabel(THREE,text){const canvas=document.createElement('canvas');canvas.width=320;canvas.height=72;const ctx=canvas.getContext('2d');ctx.fillStyle='#fffefa';ctx.strokeStyle='#cbd8d1';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(2,2,316,68,12);ctx.fill();ctx.stroke();ctx.fillStyle='#203d49';ctx.font='600 25px sans-serif';ctx.fillText(text.slice(0,20),16,45);const texture=new THREE.CanvasTexture(canvas);const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true}));sprite.scale.set(2.3,.52,1);return sprite;}
+
+async function askTour(question) {
+  const output=document.querySelector('#tour-response');if(!output||!currentRepoData)return;
+  output.innerHTML='<div class="ai-progress"><span class="ai-pulse"></span><p>Following the paths in this repository…</p></div>';
+  document.querySelector('.ai-card')?.setAttribute('aria-busy','true');
+  try { const response=await fetch('/api/tour',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...currentRepoData,question,selectedFolder:selectedRepoFolder})});const data=await response.json();if(!response.ok)throw new Error(data.error||'The tour is unavailable.');let answerHtml=renderMarkdown(data.answer);for(const file of currentRepoData.files){const token=`<code>${escapeHtml(file.path)}</code>`;if(answerHtml.includes(token))answerHtml=answerHtml.replaceAll(token,`<a class="tour-file-link" href="${escapeHtml(githubFileUrl(currentRepoData.repository,file.path))}" target="_blank" rel="noreferrer"><code>${escapeHtml(file.path)}</code> ↗</a>`);}output.innerHTML=`<div class="tour-answer">${answerHtml}</div><p class="tour-evidence">Based on repository metadata, its README and file paths. Verify details in the linked files.</p>`; }
+  catch(error){output.innerHTML=`<p class="tour-error">${escapeHtml(error.message)}</p>`;}
+  finally{document.querySelector('.ai-card')?.setAttribute('aria-busy','false');}
 }
 
 function renderLoading() {
@@ -268,31 +347,11 @@ async function analyze(url) {
   }
 
   if (run !== activeRun) return;
-  renderResults(data, null, 'loading');
+  renderResults(data, null, 'off');
   results.setAttribute('aria-busy', 'false');
-  message.textContent = `Map ready · ${formatNumber(data.fileCount)} files · writing AI notes`;
+  message.textContent = `Map ready · ${formatNumber(data.fileCount)} files found`;
   button.disabled = false;
   button.querySelector('span:first-child').textContent = 'Map this repo';
-
-  try {
-    const analysisResponse = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const analysisData = await analysisResponse.json();
-    if (!analysisResponse.ok) throw new Error(analysisData.error || 'Could not create the reading notes.');
-    if (run !== activeRun) return;
-    renderResults(data, analysisData.analysis, analysisData.aiEnabled ? 'ready' : 'off');
-    message.textContent = `Map ready · ${formatNumber(data.fileCount)} files found`;
-  } catch (error) {
-    if (run !== activeRun) return;
-    message.textContent = error.message;
-    message.classList.add('error-message');
-    renderResults(data, null, 'error', error.message);
-  } finally {
-    if (run === activeRun) results.setAttribute('aria-busy', 'false');
-  }
 }
 
 let activeRun = 0;

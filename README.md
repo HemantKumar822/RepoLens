@@ -1,6 +1,6 @@
 # RepoLens
 
-RepoLens helps you get oriented in a public GitHub repository before you dive into the code. It draws a linked map of the largest folders and their subfolders, charts language and directory size, summarizes the README, classifies source/test/docs/build signals, and recommends useful first files. These structural insights work without an AI key. With an OpenAI key, RepoLens adds a short reading tour grounded in the README and file tree.
+RepoLens helps you get oriented in a public GitHub repository before you dive into the code. Explore its folder landscape in an interactive 2D map or optional 3D view, chart languages and folder sizes, inspect structural signals, and ask an AI guide questions grounded in the repository README and file paths.
 
 ## Run locally
 
@@ -12,14 +12,14 @@ npm start
 
 Open <http://127.0.0.1:4173>.
 
-Without an API key, repository metadata, file structure, and language breakdown still work. The AI key stays in the local server process and is never sent to the browser.
+Without an API key, repository metadata, file structure, and charts still work. Add `GROQ_API_KEY` to `.env` for the AI field guide (Groq is preferred); `GROQ_MODEL` is optional. `OPENAI_API_KEY` remains supported as a fallback. Keys stay server-side and are never sent to the browser.
 
 ## Deploy to Vercel
 
 1. Push this project to a GitHub repository.
 2. In Vercel, choose **Add New → Project** and import that repository.
 3. Keep the detected Node.js settings; no build command or install step is needed.
-4. Optionally add `OPENAI_API_KEY` in **Project Settings → Environment Variables** to enable AI notes. `OPENAI_MODEL` and `OPENAI_BASE_URL` are optional overrides.
+4. Optionally add `GROQ_API_KEY` in **Project Settings → Environment Variables** to enable the AI field guide. Set `GROQ_MODEL` to override its model. OpenAI keys remain supported as a fallback.
 5. Deploy. Static assets are served from `public/`; `/api/repo` and `/api/analyze` run as a Node.js function.
 
 For GitHub's new-repository flow, create an empty repository (without an auto-generated README/license), then run:
@@ -39,7 +39,7 @@ Replace `OWNER/REPOSITORY` with the new repository path. Never commit `.env`; ad
 - Public repository metadata from the GitHub REST API
 - The recursive file tree, root folders, and language breakdown
 - Directory sizes, common project manifests, and source/test/docs/build path signals
-- Up to 16,000 characters of the repository README for the optional AI explanation
+- Up to 16,000 characters of the repository README and a limited set of paths for AI explanations
 - No repository cloning or persistent analysis history
 
 RepoLens does not clone a repository or store analysis results. GitHub's unauthenticated API rate limits apply.
@@ -56,6 +56,9 @@ RepoLens does not clone a repository or store analysis results. GitHub's unauthe
 - [ ] RAG over selected repository files
 - [ ] Save and compare repository field notes
 - [x] Vercel serverless API and deployment configuration
+- [x] Interactive 2D folder explorer with filters, selection, and zoom
+- [x] Optional 3D repository landscape
+- [x] AI field guide endpoint compatible with Groq and OpenAI
 - [ ] Add a live demo link
 
 ## Stack
@@ -63,4 +66,5 @@ RepoLens does not clone a repository or store analysis results. GitHub's unauthe
 - HTML, CSS, and browser JavaScript
 - Node.js built-in HTTP server and `fetch`
 - GitHub REST API
-- OpenAI Responses API (optional)
+- Groq Chat Completions API (preferred, optional)
+- OpenAI Chat Completions API (optional fallback)

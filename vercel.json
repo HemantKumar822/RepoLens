@@ -4,6 +4,7 @@
   "outputDirectory": "public",
   "functions": {
     "api/repo.mjs": { "maxDuration": 30 },
-    "api/analyze.mjs": { "maxDuration": 60 }
+    "api/analyze.mjs": { "maxDuration": 60 },
+    "api/tour.mjs": { "maxDuration": 45 }
   }
 }
