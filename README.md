@@ -78,7 +78,7 @@ Copy `.env.example` to `.env`, then add a Groq key:
 GROQ_API_KEY=your_groq_api_key
 ```
 
-`GROQ_MODEL` is optional and defaults to `openai/gpt-oss-120b`. An OpenAI-compatible provider can be used with `OPENAI_API_KEY`; `OPENAI_MODEL` and `OPENAI_BASE_URL` are optional settings. Keep provider keys on the server and out of Git.
+`GROQ_MODEL` is optional and defaults to `openai/gpt-oss-20b` for faster guide replies. An OpenAI-compatible provider can be used with `OPENAI_API_KEY`; `OPENAI_MODEL` and `OPENAI_BASE_URL` are optional settings. Keep provider keys on the server and out of Git.
 
 ### Build and serve
 

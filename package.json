@@ -10,7 +10,7 @@
     "dev": "concurrently -k -n API,WEB -c yellow,cyan \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "node --env-file-if-exists=.env server.mjs",
     "dev:web": "vite",
-    "test": "node --test tests/traffic.test.mjs",
+    "test": "node --test tests/*.test.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "start": "node --env-file-if-exists=.env server.mjs"
