@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import type { CityBlock, RepositoryRole, WorldLayout, WorldPoint, WorldRoad } from '../types';
+import { chooseTrafficRoutes } from './traffic.mjs';
 
 const CITY_MODELS = [
   'office', 'corner-shop', 'market', 'restaurant', 'library', 'school', 'monument',
@@ -200,12 +201,20 @@ function TaxiCourier({ route, index, reduceMotion }: { route: WorldRoad; index: 
   useFrame(({ clock }) => {
     const node = courier.current;
     if (!node) return;
-    const duration = 16 + index * 3;
-    const progress = reduceMotion ? .3 + index * .24 : (clock.elapsedTime / duration + index * .37) % 1;
+    const direction = index % 2 === 0 ? 1 : -1;
+    const duration = 18 + index * 2.5;
+    const progress = reduceMotion ? .22 + index * .22 : (clock.elapsedTime / duration + index * .29) % 1;
+    const along = direction > 0 ? progress : 1 - progress;
     const dx = route.end.x - route.start.x;
     const dz = route.end.z - route.start.z;
-    node.position.set(route.start.x + dx * progress, .24, route.start.z + dz * progress);
-    node.rotation.y = Math.abs(dx) > Math.abs(dz) ? -Math.PI / 2 : 0;
+    const length = Math.hypot(dx, dz) || 1;
+    const lane = direction * Math.min(.22, (route.width || .8) * .16);
+    node.position.set(
+      route.start.x + dx * along - dz / length * lane,
+      .24,
+      route.start.z + dz * along + dx / length * lane,
+    );
+    node.rotation.y = (Math.abs(dx) > Math.abs(dz) ? -Math.PI / 2 : 0) + (direction < 0 ? Math.PI : 0);
   });
   return <group ref={courier}>
     <Suspense fallback={<group><mesh position={[0, .14, 0]} castShadow><boxGeometry args={[.8, .25, .42]} /><meshStandardMaterial color="#e7a344" /></mesh><mesh position={[0, .31, 0]}><boxGeometry args={[.46, .13, .34]} /><meshStandardMaterial color="#f1d9a8" /></mesh></group>}>
@@ -215,8 +224,77 @@ function TaxiCourier({ route, index, reduceMotion }: { route: WorldRoad; index: 
 }
 
 function CityTraffic({ world, reduceMotion }: { world: WorldLayout; reduceMotion: boolean }) {
-  const route = world.avenues.find((road) => road.kind === 'avenue' && Math.abs(road.start.z - road.end.z) < .01);
-  return route ? <TaxiCourier route={route} index={0} reduceMotion={reduceMotion} /> : null;
+  const routes = useMemo(() => chooseTrafficRoutes(world.avenues, world.plaza.z), [world.avenues, world.plaza.z]);
+  return <group>{routes.map((route, index) => <TaxiCourier
+    key={`${route.start.x}:${route.start.z}:${route.end.x}:${route.end.z}`}
+    route={route}
+    index={index}
+    reduceMotion={reduceMotion}
+  />)}</group>;
+}
+
+const WALKER_COLORS = ['#df8067', '#7789c5', '#70a77c'];
+
+function PlazaWalker({ plaza, blockSize, index, reduceMotion }: {
+  plaza: WorldPoint; blockSize: number; index: number; reduceMotion: boolean;
+}) {
+  const walker = useRef<THREE.Group>(null);
+  const half = blockSize * .25;
+  const sideLength = half * 2;
+  const perimeter = sideLength * 4;
+  const corners: Array<[number, number]> = [[-half, -half], [half, -half], [half, half], [-half, half]];
+  const color = WALKER_COLORS[index % WALKER_COLORS.length];
+
+  useFrame(({ clock }) => {
+    const node = walker.current;
+    if (!node) return;
+
+    const distance = reduceMotion
+      ? perimeter * index / WALKER_COLORS.length
+      : (clock.elapsedTime * .72 + perimeter * index / WALKER_COLORS.length) % perimeter;
+    const segment = Math.floor(distance / sideLength) % corners.length;
+    const amount = (distance % sideLength) / sideLength;
+    const [startX, startZ] = corners[segment];
+    const [endX, endZ] = corners[(segment + 1) % corners.length];
+    const dx = endX - startX;
+    const dz = endZ - startZ;
+
+    node.position.set(
+      plaza.x + startX + dx * amount,
+      .3 + (reduceMotion ? 0 : Math.abs(Math.sin(clock.elapsedTime * 8 + index)) * .018),
+      plaza.z + startZ + dz * amount,
+    );
+    node.rotation.y = Math.atan2(dx, dz);
+  });
+
+  return <group ref={walker}>
+    <mesh position={[0, .015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[.2, 8]} />
+      <meshBasicMaterial color="#31575a" transparent opacity={.18} />
+    </mesh>
+    <mesh position={[0, .42, 0]} castShadow><boxGeometry args={[.22, .32, .16]} /><meshStandardMaterial color={color} roughness={.9} /></mesh>
+    <mesh position={[0, .68, 0]} castShadow><boxGeometry args={[.21, .21, .19]} /><meshStandardMaterial color="#efc99f" roughness={.95} /></mesh>
+    <mesh position={[0, .8, 0]} castShadow><boxGeometry args={[.23, .07, .2]} /><meshStandardMaterial color="#5b5148" roughness={.95} /></mesh>
+    <mesh position={[-.045, .69, .101]}><boxGeometry args={[.022, .03, .012]} /><meshBasicMaterial color="#28484a" /></mesh>
+    <mesh position={[.045, .69, .101]}><boxGeometry args={[.022, .03, .012]} /><meshBasicMaterial color="#28484a" /></mesh>
+    <mesh position={[0, .43, -.095]}><boxGeometry args={[.12, .19, .07]} /><meshStandardMaterial color="#d9bc83" roughness={.95} /></mesh>
+    <mesh position={[-.15, .42, 0]} castShadow><boxGeometry args={[.07, .24, .11]} /><meshStandardMaterial color="#efc99f" roughness={.95} /></mesh>
+    <mesh position={[.15, .42, 0]} castShadow><boxGeometry args={[.07, .24, .11]} /><meshStandardMaterial color="#efc99f" roughness={.95} /></mesh>
+    <mesh position={[-.06, .12, 0]} castShadow><boxGeometry args={[.075, .24, .09]} /><meshStandardMaterial color="#5d6063" roughness={.95} /></mesh>
+    <mesh position={[.06, .12, 0]} castShadow><boxGeometry args={[.075, .24, .09]} /><meshStandardMaterial color="#5d6063" roughness={.95} /></mesh>
+  </group>;
+}
+
+function PlazaLife({ world, reduceMotion }: { world: WorldLayout; reduceMotion: boolean }) {
+  return <group>
+    {WALKER_COLORS.map((_, index) => <PlazaWalker
+      key={index}
+      plaza={world.plaza}
+      blockSize={world.blockSize}
+      index={index}
+      reduceMotion={reduceMotion}
+    />)}
+  </group>;
 }
 
 function FallbackLandmark({ role }: { role: RepositoryRole }) {
@@ -316,6 +394,7 @@ export function WorldLand({ world, children, reduceMotion, repositoryName }: {
     {plaza && <TownSquare block={plaza} blockSize={world.blockSize} repositoryName={repositoryName} />}
     <RoadNetwork world={world} />
     <CityTraffic world={world} reduceMotion={reduceMotion} />
+    <PlazaLife world={world} reduceMotion={reduceMotion} />
     {children}
   </group>;
 }
