@@ -1,7 +1,7 @@
 {
-  "framework": null,
-  "buildCommand": null,
-  "outputDirectory": "public",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "functions": {
     "api/repo.mjs": { "maxDuration": 30 },
     "api/analyze.mjs": { "maxDuration": 60 },

@@ -19,9 +19,9 @@ function sendJson(response, status, body) {
 export default async function handler(request, response) {
   if (request.method !== 'POST') return sendJson(response, 405, { error: 'Method not allowed.' });
   try {
-    const answer = await generateTour(await readJson(request));
-    if (!answer) return sendJson(response, 503, { error: 'Add GROQ_API_KEY in the Vercel project settings to start an AI tour.' });
-    sendJson(response, 200, { answer });
+    const result = await generateTour(await readJson(request));
+    if (!result) return sendJson(response, 503, { error: 'Add GROQ_API_KEY in the Vercel project settings to start an AI tour.' });
+    sendJson(response, 200, result);
   } catch (error) {
     sendJson(response, 400, { error: error.message || 'Could not create the tour.' });
   }

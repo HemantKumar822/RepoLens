@@ -1,70 +1,55 @@
 # RepoLens
 
-RepoLens helps you get oriented in a public GitHub repository before you dive into the code. Explore its folder landscape in an interactive 2D map or optional 3D view, chart languages and folder sizes, inspect structural signals, and ask an AI guide questions grounded in the repository README and file paths.
+RepoLens turns a public GitHub repository into a small, explorable pixel world. Folders become districts, a sample of real file paths becomes buildings, and character guides help students find their way through the code.
 
 ## Run locally
 
-Requires Node.js 20 or newer. RepoLens has no package dependencies.
+Requires Node.js 20.19 or newer.
 
 ```sh
+npm install
+npm run dev
+```
+
+Open <http://localhost:5173>. Vite serves the interface and proxies `/api` requests to the local Node server on port 4173.
+
+The 3D world, file map, GitHub links, journal, and 2D blueprint work without an AI key. To enable the on-demand file guide, copy `.env.example` to `.env` and set `GROQ_API_KEY`. The optional `GROQ_MODEL` setting selects the Groq model. `OPENAI_API_KEY` is supported as a fallback. Provider keys stay on the server.
+
+## Build and serve
+
+```sh
+npm run build
 npm start
 ```
 
-Open <http://127.0.0.1:4173>.
-
-Without an API key, repository metadata, file structure, and charts still work. Add `GROQ_API_KEY` to `.env` for the AI field guide (Groq is preferred); `GROQ_MODEL` is optional. `OPENAI_API_KEY` remains supported as a fallback. Keys stay server-side and are never sent to the browser.
+The build checks the TypeScript source and creates the static site in `dist`. The local Node server serves that build and the `/api/repo`, `/api/analyze`, and `/api/tour` routes.
 
 ## Deploy to Vercel
 
-1. Push this project to a GitHub repository.
-2. In Vercel, choose **Add New → Project** and import that repository.
-3. Keep the detected Node.js settings; no build command or install step is needed.
-4. Optionally add `GROQ_API_KEY` in **Project Settings → Environment Variables** to enable the AI field guide. Set `GROQ_MODEL` to override its model. OpenAI keys remain supported as a fallback.
-5. Deploy. Static assets are served from `public/`; `/api/repo` and `/api/analyze` run as a Node.js function.
+1. Push this repository to GitHub and import it into Vercel.
+2. Vercel uses `npm run build` and the `dist` output directory from `vercel.json`.
+3. Add `GROQ_API_KEY` under Vercel Project Settings → Environment Variables to enable the character guide. Add it to Production and Preview if both should support AI.
+4. Deploy. The static client and existing Node.js API handlers are deployed together.
 
-For GitHub's new-repository flow, create an empty repository (without an auto-generated README/license), then run:
+Keep `.env` out of Git. Provider keys are read only by the server-side handlers.
 
-```sh
-git init -b main
-git add .
-git commit -m "Prepare RepoLens for deployment"
-git remote add origin https://github.com/OWNER/REPOSITORY.git
-git push -u origin main
-```
+## How the world is built
 
-Replace `OWNER/REPOSITORY` with the new repository path. Never commit `.env`; add secrets through Vercel's environment variable settings.
-
-## What it reads
-
-- Public repository metadata from the GitHub REST API
-- The recursive file tree, root folders, and language breakdown
-- Directory sizes, common project manifests, and source/test/docs/build path signals
-- Up to 16,000 characters of the repository README and a limited set of paths for AI explanations
-- No repository cloning or persistent analysis history
-
-RepoLens does not clone a repository or store analysis results. GitHub's unauthenticated API rate limits apply.
-
-## Capstone roadmap
-
-- [x] Repository URL intake and validation
-- [x] Public GitHub metadata, file tree, and language map
-- [x] Linked visual folder map, README summary, and first-file recommendations
-- [x] Language composition and directory footprint charts
-- [x] Local structure analysis for code, tests, docs, and build configuration
-- [x] Server-side optional AI reading notes
-- [x] Responsive interface and useful failure messages
-- [ ] RAG over selected repository files
-- [ ] Save and compare repository field notes
-- [x] Vercel serverless API and deployment configuration
-- [x] Interactive 2D folder explorer with filters, selection, and zoom
-- [x] Optional 3D repository landscape
-- [x] AI field guide endpoint compatible with Groq and OpenAI
-- [ ] Add a live demo link
+- GitHub's repository metadata, language totals, README, and recursive tree provide the map data.
+- Each top-level folder becomes a district, positioned in a stable order. District size reflects its file count.
+- Buildings and the inspector show a bounded sample of actual file paths. Totals remain separate from that sample. A truncated GitHub tree is labeled.
+- A district's AI guide is selected from explicit folder names and repository signals: source, tests, documentation, configuration, or general navigation. Each guide has a distinct role and voice.
+- Guide replies use a compact field-note format: a headline, a plain-language answer, up to three clues, one tappable follow-up, and links to the exact files used. The server fetches up to three small text files from the chosen district, keeps the request bounded, and validates every evidence path against those files. Repository text is treated as untrusted input.
+- No repository history or AI conversations are saved by RepoLens.
 
 ## Stack
 
-- HTML, CSS, and browser JavaScript
-- Node.js built-in HTTP server and `fetch`
+- React, TypeScript, Vite
+- Three.js, React Three Fiber, Drei
+- Node.js built-in HTTP server and Vercel Node.js functions
 - GitHub REST API
-- Groq Chat Completions API (preferred, optional)
-- OpenAI Chat Completions API (optional fallback)
+- Groq Chat Completions API (optional) and OpenAI-compatible fallback
+
+## Design notes
+
+The scene and spirit characters are procedural and original. Wonderhop informed the pixel-art and warm landscape mood only; its art assets, wording, page structure, and game flow are not used.
